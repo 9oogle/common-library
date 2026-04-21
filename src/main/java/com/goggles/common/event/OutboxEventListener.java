@@ -58,7 +58,7 @@ public class OutboxEventListener {
 				.ifPresent(outbox -> {
 					// Kafka 메시지에 ID 헤더 추가
 					ProducerRecord<String, Object> record =
-							new ProducerRecord<>(outbox.getEventType(), outbox.getPayload());
+							new ProducerRecord<>(outbox.getEventType(), null, outbox.getCorrelationId(), outbox.getPayload());
 					record.headers()
 							.add("message_id", outbox.getId()
 									.toString()

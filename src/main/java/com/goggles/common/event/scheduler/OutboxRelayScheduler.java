@@ -53,7 +53,7 @@ public class OutboxRelayScheduler {
 
 			UUID id = outbox.getId();
 			try {
-				kafkaTemplate.send(outbox.getEventType(), outbox.getPayload())
+				kafkaTemplate.send(outbox.getEventType(), outbox.getCorrelationId(), outbox.getPayload())
 						.whenComplete((result, e) -> outboxStatusUpdater.updateRelayStatus(id, e == null));
 			} catch (Exception e) {
 				outboxStatusUpdater.updateRelayStatus(id, false);
