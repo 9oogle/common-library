@@ -20,19 +20,20 @@ import lombok.Getter;
 @Getter
 public class CommonCursorRequest {
 
-    private final String cursor; // null이면 첫 페이지
-    private final int size;
+	private final String cursor; // null이면 첫 페이지
+	private final int size;
 
-    private CommonCursorRequest(String cursor, int size) {
-        this.cursor = cursor;
-        this.size = CommonPageRequest.ALLOWED_SIZES.contains(size) ? size : CommonPageRequest.DEFAULT_SIZE;
-    }
+	private CommonCursorRequest(String cursor, int size) {
+		this.cursor = cursor;
+		this.size = CommonPageRequest.ALLOWED_SIZES.contains(size) ? size :
+				CommonPageRequest.DEFAULT_SIZE;
+	}
 
-    public static CommonCursorRequest of(String cursor, int size) {
-        return new CommonCursorRequest(cursor, size);
-    }
+	public static CommonCursorRequest of(String cursor, int size) {
+		return new CommonCursorRequest(cursor, size);
+	}
 
-    public boolean isFirst() {
-        return cursor == null;
-    }
+	public boolean isFirst() {
+		return cursor == null;
+	}
 }

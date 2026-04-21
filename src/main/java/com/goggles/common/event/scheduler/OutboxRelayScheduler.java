@@ -5,16 +5,16 @@ import com.goggles.common.domain.Outbox;
 import com.goggles.common.domain.OutboxRepository;
 import com.goggles.common.domain.OutboxStatus;
 import com.goggles.common.event.OutboxStatusUpdater;
-
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -35,8 +35,10 @@ public class OutboxRelayScheduler {
 				List.of(OutboxStatus.PENDING, OutboxStatus.FAILED), MAX_RETRY));
 
 		// 서버 재시작 등으로 PROCESSING 상태가 일정 시간 이상 유지된 row 복구
-		List<Outbox> stuckTargets = outboxRepository.findByStatusAndUpdatedAtBefore(
-				OutboxStatus.PROCESSING, LocalDateTime.now().minusMinutes(PROCESSING_STUCK_MINUTES));
+		List<Outbox> stuckTargets =
+				outboxRepository.findByStatusAndUpdatedAtBefore(OutboxStatus.PROCESSING,
+						LocalDateTime.now()
+								.minusMinutes(PROCESSING_STUCK_MINUTES));
 		if (!stuckTargets.isEmpty()) {
 			log.warn("[Outbox] PROCESSING stuck 감지 {}건 — 재처리합니다", stuckTargets.size());
 			targets.addAll(stuckTargets);
@@ -53,8 +55,10 @@ public class OutboxRelayScheduler {
 
 			UUID id = outbox.getId();
 			try {
-				kafkaTemplate.send(outbox.getEventType(), outbox.getCorrelationId(), outbox.getPayload())
-						.whenComplete((result, e) -> outboxStatusUpdater.updateRelayStatus(id, e == null));
+				kafkaTemplate.send(outbox.getEventType(), outbox.getCorrelationId(),
+								outbox.getPayload())
+						.whenComplete((result, e) -> outboxStatusUpdater.updateRelayStatus(id,
+								e == null));
 			} catch (Exception e) {
 				outboxStatusUpdater.updateRelayStatus(id, false);
 				log.error("[Outbox] 재전송 실패 - outboxId={}", id, e);

@@ -30,98 +30,100 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class OutboxEventListenerTest {
 
-    @Mock OutboxRepository outboxRepository;
-    @Mock KafkaTemplate<String, Object> kafkaTemplate;
-    @Mock ObjectMapper objectMapper;
-    @Mock OutboxStatusUpdater outboxStatusUpdater;
+	private static final OutboxEvent EVENT =
+			new OutboxEvent("corr-1", "ORDER", "OrderCreatedEvent", "{\"amount\":1000}");
+	@Mock
+	OutboxRepository outboxRepository;
+	@Mock
+	KafkaTemplate<String, Object> kafkaTemplate;
+	@Mock
+	ObjectMapper objectMapper;
+	@Mock
+	OutboxStatusUpdater outboxStatusUpdater;
+	@InjectMocks
+	OutboxEventListener listener;
 
-    @InjectMocks
-    OutboxEventListener listener;
+	// ── recordOutbox ──────────────────────────────────────────────────────────
 
-    private static final OutboxEvent EVENT = new OutboxEvent(
-            "corr-1", "ORDER", "OrderCreatedEvent", "{\"amount\":1000}");
+	@Test
+	void 새로운_correlationId면_PENDING으로_저장한다() throws Exception {
+		given(outboxRepository.existsByCorrelationId("corr-1")).willReturn(false);
+		given(objectMapper.writeValueAsString(any())).willReturn("{\"amount\":1000}");
 
-    // ── recordOutbox ──────────────────────────────────────────────────────────
+		listener.recordOutbox(EVENT);
 
-    @Test
-    void 새로운_correlationId면_PENDING으로_저장한다() throws Exception {
-        given(outboxRepository.existsByCorrelationId("corr-1")).willReturn(false);
-        given(objectMapper.writeValueAsString(any())).willReturn("{\"amount\":1000}");
+		verify(outboxRepository).save(argThat(o -> "corr-1".equals(o.getCorrelationId()) &&
+				OutboxStatus.PENDING.equals(o.getStatus())));
+	}
 
-        listener.recordOutbox(EVENT);
+	@Test
+	void 중복된_correlationId면_저장하지_않는다() {
+		given(outboxRepository.existsByCorrelationId("corr-1")).willReturn(true);
 
-        verify(outboxRepository).save(argThat(o ->
-                "corr-1".equals(o.getCorrelationId()) &&
-                OutboxStatus.PENDING.equals(o.getStatus())
-        ));
-    }
+		listener.recordOutbox(EVENT);
 
-    @Test
-    void 중복된_correlationId면_저장하지_않는다() {
-        given(outboxRepository.existsByCorrelationId("corr-1")).willReturn(true);
+		verify(outboxRepository, never()).save(any());
+	}
 
-        listener.recordOutbox(EVENT);
+	@Test
+	void 직렬화_실패시_Outbox를_저장하지_않는다() throws Exception {
+		given(outboxRepository.existsByCorrelationId("corr-1")).willReturn(false);
+		given(objectMapper.writeValueAsString(any())).willThrow(
+				new JsonProcessingException("직렬화 실패") {});
 
-        verify(outboxRepository, never()).save(any());
-    }
+		listener.recordOutbox(EVENT);
 
-    @Test
-    void 직렬화_실패시_Outbox를_저장하지_않는다() throws Exception {
-        given(outboxRepository.existsByCorrelationId("corr-1")).willReturn(false);
-        given(objectMapper.writeValueAsString(any()))
-                .willThrow(new JsonProcessingException("직렬화 실패") {});
+		verify(outboxRepository, never()).save(any());
+	}
 
-        listener.recordOutbox(EVENT);
+	// ── publish ───────────────────────────────────────────────────────────────
 
-        verify(outboxRepository, never()).save(any());
-    }
+	@Test
+	void Kafka_발행_성공시_handleSuccess를_호출한다() {
+		Outbox outbox = buildOutbox(UUID.randomUUID(), OutboxStatus.PENDING);
+		given(outboxRepository.findByCorrelationId("corr-1")).willReturn(Optional.of(outbox));
+		given(kafkaTemplate.send(
+				any(org.apache.kafka.clients.producer.ProducerRecord.class))).willReturn(
+				CompletableFuture.completedFuture(mock(SendResult.class)));
 
-    // ── publish ───────────────────────────────────────────────────────────────
+		listener.publish(EVENT);
 
-    @Test
-    void Kafka_발행_성공시_handleSuccess를_호출한다() {
-        Outbox outbox = buildOutbox(UUID.randomUUID(), OutboxStatus.PENDING);
-        given(outboxRepository.findByCorrelationId("corr-1")).willReturn(Optional.of(outbox));
-        given(kafkaTemplate.send(any(org.apache.kafka.clients.producer.ProducerRecord.class)))
-                .willReturn(CompletableFuture.completedFuture(mock(SendResult.class)));
+		verify(outboxStatusUpdater).handleSuccess("corr-1");
+	}
 
-        listener.publish(EVENT);
+	@Test
+	void Kafka_발행_실패시_handleFailure를_호출한다() {
+		Outbox outbox = buildOutbox(UUID.randomUUID(), OutboxStatus.PENDING);
+		given(outboxRepository.findByCorrelationId("corr-1")).willReturn(Optional.of(outbox));
+		given(kafkaTemplate.send(
+				any(org.apache.kafka.clients.producer.ProducerRecord.class))).willReturn(
+				CompletableFuture.failedFuture(new RuntimeException("Kafka 연결 실패")));
 
-        verify(outboxStatusUpdater).handleSuccess("corr-1");
-    }
+		listener.publish(EVENT);
 
-    @Test
-    void Kafka_발행_실패시_handleFailure를_호출한다() {
-        Outbox outbox = buildOutbox(UUID.randomUUID(), OutboxStatus.PENDING);
-        given(outboxRepository.findByCorrelationId("corr-1")).willReturn(Optional.of(outbox));
-        given(kafkaTemplate.send(any(org.apache.kafka.clients.producer.ProducerRecord.class)))
-                .willReturn(CompletableFuture.failedFuture(new RuntimeException("Kafka 연결 실패")));
+		verify(outboxStatusUpdater).handleFailure(eq(EVENT), any(Throwable.class));
+	}
 
-        listener.publish(EVENT);
+	@Test
+	void Outbox가_없으면_Kafka_발행하지_않는다() {
+		given(outboxRepository.findByCorrelationId("corr-1")).willReturn(Optional.empty());
 
-        verify(outboxStatusUpdater).handleFailure(eq(EVENT), any(Throwable.class));
-    }
+		listener.publish(EVENT);
 
-    @Test
-    void Outbox가_없으면_Kafka_발행하지_않는다() {
-        given(outboxRepository.findByCorrelationId("corr-1")).willReturn(Optional.empty());
+		verifyNoInteractions(kafkaTemplate);
+	}
 
-        listener.publish(EVENT);
+	// ── helpers ───────────────────────────────────────────────────────────────
 
-        verifyNoInteractions(kafkaTemplate);
-    }
-
-    // ── helpers ───────────────────────────────────────────────────────────────
-
-    private Outbox buildOutbox(UUID id, OutboxStatus status) {
-        Outbox outbox = Outbox.builder()
-                .correlationId("corr-1")
-                .domainType("ORDER")
-                .eventType("OrderCreatedEvent")
-                .payload("{\"amount\":1000}")
-                .status(status)
-                .build();
-        ReflectionTestUtils.setField(outbox, "id", id);
-        return outbox;
-    }
+	private Outbox buildOutbox(UUID id, OutboxStatus status) {
+		Outbox outbox = Outbox.builder()
+				.correlationId("corr-1")
+				.domainType("ORDER")
+				.eventType("OrderCreatedEvent")
+				.payload("{\"amount\":1000}")
+				.status(status)
+				.build();
+		ReflectionTestUtils.setField(outbox, "id", id);
+		return outbox;
+	}
 }

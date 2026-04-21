@@ -12,13 +12,10 @@ import java.util.UUID;
 @Entity
 @Getter
 @Builder
-@Table(name = "p_inbox",
-		uniqueConstraints = @UniqueConstraint(name = "uk_inbox_message_id_group", columnNames = {"messageId", "messageGroup"}),
-		indexes = {
-				@Index(name = "idx_inbox_message_group", columnList = "messageGroup"),
-				@Index(name = "idx_inbox_processed_at", columnList = "processedAt")
-		}
-)
+@Table(name = "p_inbox", uniqueConstraints = @UniqueConstraint(name = "uk_inbox_message_id_group", columnNames = {
+		"messageId", "messageGroup"}), indexes = {
+		@Index(name = "idx_inbox_message_group", columnList = "messageGroup"),
+		@Index(name = "idx_inbox_processed_at", columnList = "processedAt")})
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Access(AccessType.FIELD)

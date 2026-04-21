@@ -8,5 +8,5 @@ import java.lang.annotation.Target;
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface IdempotentConsumer {
-    String value(); // 메세지 그룹
+	String value(); // 메세지 그룹
 }

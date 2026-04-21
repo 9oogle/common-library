@@ -12,7 +12,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -28,124 +27,124 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class OutboxStatusUpdaterTest {
 
-    @Mock OutboxRepository outboxRepository;
-    @Mock KafkaTemplate<String, Object> kafkaTemplate;
+	private static final OutboxEvent EVENT =
+			new OutboxEvent("corr-1", "ORDER", "OrderCreatedEvent", "{\"amount\":1000}");
+	@Mock
+	OutboxRepository outboxRepository;
+	@Mock
+	KafkaTemplate<String, Object> kafkaTemplate;
+	@InjectMocks
+	OutboxStatusUpdater updater;
 
-    @InjectMocks
-    OutboxStatusUpdater updater;
+	// ── handleSuccess ─────────────────────────────────────────────────────────
 
-    private static final OutboxEvent EVENT = new OutboxEvent(
-            "corr-1", "ORDER", "OrderCreatedEvent", "{\"amount\":1000}");
+	@Test
+	void handleSuccess_호출시_PROCESSED로_변경된다() {
+		Outbox outbox = buildOutbox();
+		given(outboxRepository.findByCorrelationId("corr-1")).willReturn(Optional.of(outbox));
 
-    // ── handleSuccess ─────────────────────────────────────────────────────────
+		updater.handleSuccess("corr-1");
 
-    @Test
-    void handleSuccess_호출시_PROCESSED로_변경된다() {
-        Outbox outbox = buildOutbox();
-        given(outboxRepository.findByCorrelationId("corr-1")).willReturn(Optional.of(outbox));
+		assertThat(outbox.getStatus()).isEqualTo(OutboxStatus.PROCESSED);
+		verify(outboxRepository).save(outbox);
+	}
 
-        updater.handleSuccess("corr-1");
+	@Test
+	void handleSuccess_outbox가_없으면_아무것도_하지_않는다() {
+		given(outboxRepository.findByCorrelationId("corr-1")).willReturn(Optional.empty());
 
-        assertThat(outbox.getStatus()).isEqualTo(OutboxStatus.PROCESSED);
-        verify(outboxRepository).save(outbox);
-    }
+		updater.handleSuccess("corr-1");
 
-    @Test
-    void handleSuccess_outbox가_없으면_아무것도_하지_않는다() {
-        given(outboxRepository.findByCorrelationId("corr-1")).willReturn(Optional.empty());
+		verify(outboxRepository, never()).save(any());
+	}
 
-        updater.handleSuccess("corr-1");
+	// ── handleFailure ─────────────────────────────────────────────────────────
 
-        verify(outboxRepository, never()).save(any());
-    }
+	@Test
+	void handleFailure_호출시_FAILED로_변경되고_retryCount가_증가한다() {
+		Outbox outbox = buildOutbox();
+		given(outboxRepository.findByCorrelationId("corr-1")).willReturn(Optional.of(outbox));
 
-    // ── handleFailure ─────────────────────────────────────────────────────────
+		updater.handleFailure(EVENT, new RuntimeException("Kafka 오류"));
 
-    @Test
-    void handleFailure_호출시_FAILED로_변경되고_retryCount가_증가한다() {
-        Outbox outbox = buildOutbox();
-        given(outboxRepository.findByCorrelationId("corr-1")).willReturn(Optional.of(outbox));
+		assertThat(outbox.getStatus()).isEqualTo(OutboxStatus.FAILED);
+		assertThat(outbox.getRetryCount()).isEqualTo(1);
+		verify(outboxRepository).saveAndFlush(outbox);
+	}
 
-        updater.handleFailure(EVENT, new RuntimeException("Kafka 오류"));
+	@Test
+	void handleFailure_MAX_RETRY_초과시_DLT로_전송한다() {
+		Outbox outbox = buildOutboxWithRetry(3);
+		given(outboxRepository.findByCorrelationId("corr-1")).willReturn(Optional.of(outbox));
+		given(kafkaTemplate.send(eq("OrderCreatedEvent.DLT"), any())).willReturn(
+				CompletableFuture.completedFuture(mock(SendResult.class)));
 
-        assertThat(outbox.getStatus()).isEqualTo(OutboxStatus.FAILED);
-        assertThat(outbox.getRetryCount()).isEqualTo(1);
-        verify(outboxRepository).saveAndFlush(outbox);
-    }
+		updater.handleFailure(EVENT, new RuntimeException("Kafka 오류"));
 
-    @Test
-    void handleFailure_MAX_RETRY_초과시_DLT로_전송한다() {
-        Outbox outbox = buildOutboxWithRetry(3);
-        given(outboxRepository.findByCorrelationId("corr-1")).willReturn(Optional.of(outbox));
-        given(kafkaTemplate.send(eq("OrderCreatedEvent.DLT"), any()))
-                .willReturn(CompletableFuture.completedFuture(mock(SendResult.class)));
+		verify(kafkaTemplate).send(eq("OrderCreatedEvent.DLT"), any());
+	}
 
-        updater.handleFailure(EVENT, new RuntimeException("Kafka 오류"));
+	@Test
+	void handleFailure_MAX_RETRY_미만이면_DLT로_전송하지_않는다() {
+		Outbox outbox = buildOutbox();
+		given(outboxRepository.findByCorrelationId("corr-1")).willReturn(Optional.of(outbox));
 
-        verify(kafkaTemplate).send(eq("OrderCreatedEvent.DLT"), any());
-    }
+		updater.handleFailure(EVENT, new RuntimeException("Kafka 오류"));
 
-    @Test
-    void handleFailure_MAX_RETRY_미만이면_DLT로_전송하지_않는다() {
-        Outbox outbox = buildOutbox();
-        given(outboxRepository.findByCorrelationId("corr-1")).willReturn(Optional.of(outbox));
+		verifyNoInteractions(kafkaTemplate);
+	}
 
-        updater.handleFailure(EVENT, new RuntimeException("Kafka 오류"));
+	// ── updateRelayStatus ─────────────────────────────────────────────────────
 
-        verifyNoInteractions(kafkaTemplate);
-    }
+	@Test
+	void updateRelayStatus_성공시_PROCESSED로_변경된다() {
+		UUID id = UUID.randomUUID();
+		Outbox outbox = buildOutbox();
+		given(outboxRepository.findById(id)).willReturn(Optional.of(outbox));
 
-    // ── updateRelayStatus ─────────────────────────────────────────────────────
+		updater.updateRelayStatus(id, true);
 
-    @Test
-    void updateRelayStatus_성공시_PROCESSED로_변경된다() {
-        UUID id = UUID.randomUUID();
-        Outbox outbox = buildOutbox();
-        given(outboxRepository.findById(id)).willReturn(Optional.of(outbox));
+		assertThat(outbox.getStatus()).isEqualTo(OutboxStatus.PROCESSED);
+		verify(outboxRepository).saveAndFlush(outbox);
+	}
 
-        updater.updateRelayStatus(id, true);
+	@Test
+	void updateRelayStatus_실패시_FAILED로_변경되고_retryCount가_증가한다() {
+		UUID id = UUID.randomUUID();
+		Outbox outbox = buildOutbox();
+		given(outboxRepository.findById(id)).willReturn(Optional.of(outbox));
 
-        assertThat(outbox.getStatus()).isEqualTo(OutboxStatus.PROCESSED);
-        verify(outboxRepository).saveAndFlush(outbox);
-    }
+		updater.updateRelayStatus(id, false);
 
-    @Test
-    void updateRelayStatus_실패시_FAILED로_변경되고_retryCount가_증가한다() {
-        UUID id = UUID.randomUUID();
-        Outbox outbox = buildOutbox();
-        given(outboxRepository.findById(id)).willReturn(Optional.of(outbox));
+		assertThat(outbox.getStatus()).isEqualTo(OutboxStatus.FAILED);
+		assertThat(outbox.getRetryCount()).isEqualTo(1);
+		verify(outboxRepository).saveAndFlush(outbox);
+	}
 
-        updater.updateRelayStatus(id, false);
+	@Test
+	void updateRelayStatus_outbox가_없으면_아무것도_하지_않는다() {
+		UUID id = UUID.randomUUID();
+		given(outboxRepository.findById(id)).willReturn(Optional.empty());
 
-        assertThat(outbox.getStatus()).isEqualTo(OutboxStatus.FAILED);
-        assertThat(outbox.getRetryCount()).isEqualTo(1);
-        verify(outboxRepository).saveAndFlush(outbox);
-    }
+		updater.updateRelayStatus(id, true);
 
-    @Test
-    void updateRelayStatus_outbox가_없으면_아무것도_하지_않는다() {
-        UUID id = UUID.randomUUID();
-        given(outboxRepository.findById(id)).willReturn(Optional.empty());
+		verify(outboxRepository, never()).saveAndFlush(any());
+	}
 
-        updater.updateRelayStatus(id, true);
+	// ── helpers ───────────────────────────────────────────────────────────────
 
-        verify(outboxRepository, never()).saveAndFlush(any());
-    }
+	private Outbox buildOutbox() {
+		return Outbox.builder()
+				.correlationId("corr-1")
+				.domainType("ORDER")
+				.eventType("OrderCreatedEvent")
+				.payload("{\"amount\":1000}")
+				.build();
+	}
 
-    // ── helpers ───────────────────────────────────────────────────────────────
-
-    private Outbox buildOutbox() {
-        return Outbox.builder()
-                .correlationId("corr-1")
-                .domainType("ORDER")
-                .eventType("OrderCreatedEvent")
-                .payload("{\"amount\":1000}")
-                .build();
-    }
-
-    private Outbox buildOutboxWithRetry(int retryCount) {
-        Outbox outbox = buildOutbox();
-        for (int i = 0; i < retryCount; i++) outbox.fail();
-        return outbox;
-    }
+	private Outbox buildOutboxWithRetry(int retryCount) {
+		Outbox outbox = buildOutbox();
+		for (int i = 0; i < retryCount; i++) outbox.fail();
+		return outbox;
+	}
 }

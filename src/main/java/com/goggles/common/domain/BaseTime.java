@@ -1,11 +1,7 @@
 package com.goggles.common.domain;
 
 import com.querydsl.core.annotations.QuerySupertype;
-import jakarta.persistence.Access;
-import jakarta.persistence.AccessType;
-import jakarta.persistence.Column;
-import jakarta.persistence.EntityListeners;
-import jakarta.persistence.MappedSuperclass;
+import jakarta.persistence.*;
 import lombok.Getter;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -31,22 +27,22 @@ import java.time.LocalDateTime;
 @EntityListeners(AuditingEntityListener.class)
 public abstract class BaseTime {
 
-    @CreatedDate
-    @Column(nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+	@CreatedDate
+	@Column(nullable = false, updatable = false)
+	private LocalDateTime createdAt;
 
-    @LastModifiedDate
-    @Column(nullable = false)
-    private LocalDateTime updatedAt;
+	@LastModifiedDate
+	@Column(nullable = false)
+	private LocalDateTime updatedAt;
 
-    @Column
-    private LocalDateTime deletedAt;
+	@Column
+	private LocalDateTime deletedAt;
 
-    public boolean isDeleted() {
-        return deletedAt != null;
-    }
+	public boolean isDeleted() {
+		return deletedAt != null;
+	}
 
-    public void softDelete() {
-        this.deletedAt = LocalDateTime.now();
-    }
+	public void softDelete() {
+		this.deletedAt = LocalDateTime.now();
+	}
 }

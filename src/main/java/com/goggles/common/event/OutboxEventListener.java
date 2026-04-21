@@ -26,7 +26,6 @@ public class OutboxEventListener {
 	private final OutboxStatusUpdater outboxStatusUpdater;
 
 
-
 	@EventListener
 	@Transactional(propagation = Propagation.REQUIRED)
 	public void recordOutbox(OutboxEvent event) {
@@ -58,7 +57,8 @@ public class OutboxEventListener {
 				.ifPresent(outbox -> {
 					// Kafka 메시지에 ID 헤더 추가
 					ProducerRecord<String, Object> record =
-							new ProducerRecord<>(outbox.getEventType(), null, outbox.getCorrelationId(), outbox.getPayload());
+							new ProducerRecord<>(outbox.getEventType(), null,
+									outbox.getCorrelationId(), outbox.getPayload());
 					record.headers()
 							.add("message_id", outbox.getId()
 									.toString()
@@ -66,7 +66,8 @@ public class OutboxEventListener {
 
 					kafkaTemplate.send(record)
 							.whenComplete((result, e) -> {
-								if (e == null) outboxStatusUpdater.handleSuccess(event.correlationId());
+								if (e == null)
+									outboxStatusUpdater.handleSuccess(event.correlationId());
 								else outboxStatusUpdater.handleFailure(event, e);
 							});
 				});

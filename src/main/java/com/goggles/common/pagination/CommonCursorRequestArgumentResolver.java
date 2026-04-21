@@ -21,30 +21,28 @@ import org.springframework.web.method.support.ModelAndViewContainer;
  */
 public class CommonCursorRequestArgumentResolver implements HandlerMethodArgumentResolver {
 
-    @Override
-    public boolean supportsParameter(MethodParameter parameter) {
-        return CommonCursorRequest.class.equals(parameter.getParameterType());
-    }
+	@Override
+	public boolean supportsParameter(MethodParameter parameter) {
+		return CommonCursorRequest.class.equals(parameter.getParameterType());
+	}
 
-    @Override
-    public Object resolveArgument(MethodParameter parameter,
-                                  ModelAndViewContainer mavContainer,
-                                  NativeWebRequest webRequest,
-                                  WebDataBinderFactory binderFactory) {
-        String cursor = webRequest.getParameter("cursor");
-        String sizeParam = webRequest.getParameter("size");
+	@Override
+	public Object resolveArgument(MethodParameter parameter, ModelAndViewContainer mavContainer,
+			NativeWebRequest webRequest, WebDataBinderFactory binderFactory) {
+		String cursor = webRequest.getParameter("cursor");
+		String sizeParam = webRequest.getParameter("size");
 
-        int size = parseOrDefault(sizeParam);
+		int size = parseOrDefault(sizeParam);
 
-        return CommonCursorRequest.of(cursor, size);
-    }
+		return CommonCursorRequest.of(cursor, size);
+	}
 
-    private int parseOrDefault(String value) {
-        if (value == null) return CommonPageRequest.DEFAULT_SIZE;
-        try {
-            return Integer.parseInt(value);
-        } catch (NumberFormatException e) {
-            return CommonPageRequest.DEFAULT_SIZE;
-        }
-    }
+	private int parseOrDefault(String value) {
+		if (value == null) return CommonPageRequest.DEFAULT_SIZE;
+		try {
+			return Integer.parseInt(value);
+		} catch (NumberFormatException e) {
+			return CommonPageRequest.DEFAULT_SIZE;
+		}
+	}
 }

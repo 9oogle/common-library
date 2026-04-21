@@ -11,14 +11,15 @@ import java.time.LocalDateTime;
 @Slf4j
 @RequiredArgsConstructor
 public class InboxCleanupScheduler {
-    private final InboxRepository inboxRepository;
+	private final InboxRepository inboxRepository;
 
-    @Transactional
-    @Scheduled(cron = "0 0 3 * * *") // 매일 새벽 3시에 정리 작업 진행
-    public void cleanupOldMessage() {
-        // 7일 이전 목록 삭제
-        long count = inboxRepository.deleteAllByCreatedAtBefore(LocalDateTime.now().minusDays(7));
+	@Transactional
+	@Scheduled(cron = "0 0 3 * * *") // 매일 새벽 3시에 정리 작업 진행
+	public void cleanupOldMessage() {
+		// 7일 이전 목록 삭제
+		long count = inboxRepository.deleteAllByCreatedAtBefore(LocalDateTime.now()
+				.minusDays(7));
 
-        log.info("7일 경과 Inbox 내역 삭제: {}건 삭제됨", count);
-    }
+		log.info("7일 경과 Inbox 내역 삭제: {}건 삭제됨", count);
+	}
 }

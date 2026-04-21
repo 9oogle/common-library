@@ -27,23 +27,25 @@ import java.util.Set;
 @Getter
 public class CommonPageRequest {
 
-    public static final Set<Integer> ALLOWED_SIZES = Set.of(10, 30, 50);
-    public static final int DEFAULT_SIZE = 10;
+	public static final Set<Integer> ALLOWED_SIZES = Set.of(10, 30, 50);
+	public static final int DEFAULT_SIZE = 10;
 
-    private final int page;   // 0-based
-    private final int size;   // 10 | 30 | 50
+	private final int page;   // 0-based
+	private final int size;   // 10 | 30 | 50
 
-    private CommonPageRequest(int page, int size) {
-        this.page = Math.max(0, page);
-        this.size = ALLOWED_SIZES.contains(size) ? size : DEFAULT_SIZE;
-    }
+	private CommonPageRequest(int page, int size) {
+		this.page = Math.max(0, page);
+		this.size = ALLOWED_SIZES.contains(size) ? size : DEFAULT_SIZE;
+	}
 
-    public static CommonPageRequest of(int page, int size) {
-        return new CommonPageRequest(page, size);
-    }
+	public static CommonPageRequest of(int page, int size) {
+		return new CommonPageRequest(page, size);
+	}
 
-    /** Spring Data {@link Pageable} 로 변환 (정렬 포함). */
-    public Pageable toPageable(Sort sort) {
-        return PageRequest.of(page, size, sort);
-    }
+	/**
+	 * Spring Data {@link Pageable} 로 변환 (정렬 포함).
+	 */
+	public Pageable toPageable(Sort sort) {
+		return PageRequest.of(page, size, sort);
+	}
 }

@@ -1,9 +1,9 @@
 package com.goggles.config.event;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.goggles.common.domain.InboxRepository;
 import com.goggles.common.domain.OutboxRepository;
 import com.goggles.common.event.Events;
-import com.goggles.common.domain.InboxRepository;
 import com.goggles.common.event.OutboxEventListener;
 import com.goggles.common.event.OutboxStatusUpdater;
 import com.goggles.common.event.advice.InboxAdvice;
@@ -35,75 +35,76 @@ import java.util.concurrent.Executor;
 @EnableAspectJAutoProxy(proxyTargetClass = true)
 public class EventConfig implements AsyncConfigurer {
 
-    // ── Event ────────────────────────────────────────────────────────────────
+	// ── Event ────────────────────────────────────────────────────────────────
 
-    @Bean
-    public Events events(ApplicationEventPublisher eventPublisher) {
-        return new Events(eventPublisher);
-    }
+	@Bean
+	public Events events(ApplicationEventPublisher eventPublisher) {
+		return new Events(eventPublisher);
+	}
 
-    @Bean
-    public OutboxStatusUpdater outboxStatusUpdater(OutboxRepository outboxRepository,
-            KafkaTemplate<String, Object> kafkaTemplate) {
-        return new OutboxStatusUpdater(outboxRepository, kafkaTemplate);
-    }
+	@Bean
+	public OutboxStatusUpdater outboxStatusUpdater(OutboxRepository outboxRepository,
+			KafkaTemplate<String, Object> kafkaTemplate) {
+		return new OutboxStatusUpdater(outboxRepository, kafkaTemplate);
+	}
 
-    @Bean
-    public OutboxEventListener outboxEventListener(OutboxRepository outboxRepository,
-            KafkaTemplate<String, Object> kafkaTemplate, ObjectMapper objectMapper,
-            OutboxStatusUpdater outboxStatusUpdater) {
-        return new OutboxEventListener(outboxRepository, kafkaTemplate, objectMapper, outboxStatusUpdater);
-    }
+	@Bean
+	public OutboxEventListener outboxEventListener(OutboxRepository outboxRepository,
+			KafkaTemplate<String, Object> kafkaTemplate, ObjectMapper objectMapper,
+			OutboxStatusUpdater outboxStatusUpdater) {
+		return new OutboxEventListener(outboxRepository, kafkaTemplate, objectMapper,
+				outboxStatusUpdater);
+	}
 
-    @Bean
-    public OutboxRelayScheduler outboxRelayScheduler(OutboxRepository outboxRepository,
-            KafkaTemplate<String, Object> kafkaTemplate, OutboxStatusUpdater outboxStatusUpdater) {
-        return new OutboxRelayScheduler(outboxRepository, kafkaTemplate, outboxStatusUpdater);
-    }
+	@Bean
+	public OutboxRelayScheduler outboxRelayScheduler(OutboxRepository outboxRepository,
+			KafkaTemplate<String, Object> kafkaTemplate, OutboxStatusUpdater outboxStatusUpdater) {
+		return new OutboxRelayScheduler(outboxRepository, kafkaTemplate, outboxStatusUpdater);
+	}
 
-    @Bean
-    public InboxAdvice inboxAdvice(InboxRepository inboxRepository) {
-        return new InboxAdvice(inboxRepository);
-    }
+	@Bean
+	public InboxAdvice inboxAdvice(InboxRepository inboxRepository) {
+		return new InboxAdvice(inboxRepository);
+	}
 
-    @Bean
-    public InboxCleanupScheduler inboxCleanupScheduler(InboxRepository inboxRepository) {
-        return new InboxCleanupScheduler(inboxRepository);
-    }
+	@Bean
+	public InboxCleanupScheduler inboxCleanupScheduler(InboxRepository inboxRepository) {
+		return new InboxCleanupScheduler(inboxRepository);
+	}
 
-    // ── Filter ───────────────────────────────────────────────────────────────
+	// ── Filter ───────────────────────────────────────────────────────────────
 
-    @Bean
-    public MdcLoggingFilter mdcLoggingFilter() {
-        return new MdcLoggingFilter();
-    }
+	@Bean
+	public MdcLoggingFilter mdcLoggingFilter() {
+		return new MdcLoggingFilter();
+	}
 
-    // ── ArgumentResolver ─────────────────────────────────────────────────────
+	// ── ArgumentResolver ─────────────────────────────────────────────────────
 
-    @Bean
-    public WebMvcConfigurer commonArgumentResolverConfigurer() {
-        return new WebMvcConfigurer() {
-            @Override
-            public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
-                resolvers.add(new CommonPageRequestArgumentResolver());
-                resolvers.add(new CommonCursorRequestArgumentResolver());
-            }
-        };
-    }
+	@Bean
+	public WebMvcConfigurer commonArgumentResolverConfigurer() {
+		return new WebMvcConfigurer() {
+			@Override
+			public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
+				resolvers.add(new CommonPageRequestArgumentResolver());
+				resolvers.add(new CommonCursorRequestArgumentResolver());
+			}
+		};
+	}
 
-    // ── Async ────────────────────────────────────────────────────────────────
+	// ── Async ────────────────────────────────────────────────────────────────
 
-    @Override
-    public Executor getAsyncExecutor() {
-        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(10);
-        executor.setMaxPoolSize(50);
-        executor.setQueueCapacity(100);
-        executor.setThreadNamePrefix("Async-");
-        executor.setTaskDecorator(new MdcTaskDecorator());
-        executor.setWaitForTasksToCompleteOnShutdown(true);
-        executor.setAwaitTerminationSeconds(60);
-        executor.initialize();
-        return new DelegatingSecurityContextAsyncTaskExecutor(executor);
-    }
+	@Override
+	public Executor getAsyncExecutor() {
+		ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+		executor.setCorePoolSize(10);
+		executor.setMaxPoolSize(50);
+		executor.setQueueCapacity(100);
+		executor.setThreadNamePrefix("Async-");
+		executor.setTaskDecorator(new MdcTaskDecorator());
+		executor.setWaitForTasksToCompleteOnShutdown(true);
+		executor.setAwaitTerminationSeconds(60);
+		executor.initialize();
+		return new DelegatingSecurityContextAsyncTaskExecutor(executor);
+	}
 }

@@ -1,12 +1,13 @@
 package com.goggles.common.event;
 
 import com.goggles.common.domain.OutboxRepository;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.UUID;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -37,7 +38,8 @@ public class OutboxStatusUpdater {
 						log.error("최대 재시도 횟수 초과(Total: {}). DLT로 격리합니다: {}", outbox.getRetryCount(),
 								event.correlationId());
 						sendToDlt(event, outbox.getPayload());
-					} else {
+					}
+					else {
 						log.warn("메세지 전송 실패 (재시도 예정 {}/{}): {}", outbox.getRetryCount(), MAX_RETRY,
 								event.correlationId());
 					}
@@ -46,16 +48,19 @@ public class OutboxStatusUpdater {
 
 	@Transactional(propagation = Propagation.REQUIRES_NEW)
 	public void updateRelayStatus(UUID id, boolean isSuccess) {
-		outboxRepository.findById(id).ifPresent(outbox -> {
-			if (isSuccess) {
-				outbox.complete();
-				log.info("재전송 성공: {}", outbox.getCorrelationId());
-			} else {
-				outbox.fail();
-				log.warn("재전송 실패 (현재 횟수: {}): {}", outbox.getRetryCount(), outbox.getCorrelationId());
-			}
-			outboxRepository.saveAndFlush(outbox);
-		});
+		outboxRepository.findById(id)
+				.ifPresent(outbox -> {
+					if (isSuccess) {
+						outbox.complete();
+						log.info("재전송 성공: {}", outbox.getCorrelationId());
+					}
+					else {
+						outbox.fail();
+						log.warn("재전송 실패 (현재 횟수: {}): {}", outbox.getRetryCount(),
+								outbox.getCorrelationId());
+					}
+					outboxRepository.saveAndFlush(outbox);
+				});
 	}
 
 	private void sendToDlt(OutboxEvent event, String payload) {

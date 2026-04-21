@@ -1,11 +1,7 @@
 package com.goggles.common.domain;
 
 import com.querydsl.core.annotations.QuerySupertype;
-import jakarta.persistence.Access;
-import jakarta.persistence.AccessType;
-import jakarta.persistence.Column;
-import jakarta.persistence.EntityListeners;
-import jakarta.persistence.MappedSuperclass;
+import jakarta.persistence.*;
 import lombok.Getter;
 import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.LastModifiedBy;
@@ -33,19 +29,19 @@ import java.util.UUID;
 @EntityListeners(AuditingEntityListener.class)
 public abstract class BaseAudit extends BaseTime {
 
-    @CreatedBy
-    @Column(nullable = false, updatable = false, length = 100)
-    private UUID createdBy;
+	@CreatedBy
+	@Column(nullable = false, updatable = false, length = 100)
+	private UUID createdBy;
 
-    @LastModifiedBy
-    @Column(nullable = false, length = 100)
-    private UUID updatedBy;
+	@LastModifiedBy
+	@Column(nullable = false, length = 100)
+	private UUID updatedBy;
 
-    @Column(length = 100)
-    private UUID deletedBy;
+	@Column(length = 100)
+	private UUID deletedBy;
 
-    public void softDelete(UUID deletedBy) {
-        super.softDelete();
-        this.deletedBy = deletedBy;
-    }
+	public void softDelete(UUID deletedBy) {
+		super.softDelete();
+		this.deletedBy = deletedBy;
+	}
 }

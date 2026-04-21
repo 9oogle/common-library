@@ -21,31 +21,29 @@ import org.springframework.web.method.support.ModelAndViewContainer;
  */
 public class CommonPageRequestArgumentResolver implements HandlerMethodArgumentResolver {
 
-    @Override
-    public boolean supportsParameter(MethodParameter parameter) {
-        return CommonPageRequest.class.equals(parameter.getParameterType());
-    }
+	@Override
+	public boolean supportsParameter(MethodParameter parameter) {
+		return CommonPageRequest.class.equals(parameter.getParameterType());
+	}
 
-    @Override
-    public Object resolveArgument(MethodParameter parameter,
-                                  ModelAndViewContainer mavContainer,
-                                  NativeWebRequest webRequest,
-                                  WebDataBinderFactory binderFactory) {
-        String pageParam = webRequest.getParameter("page");
-        String sizeParam = webRequest.getParameter("size");
+	@Override
+	public Object resolveArgument(MethodParameter parameter, ModelAndViewContainer mavContainer,
+			NativeWebRequest webRequest, WebDataBinderFactory binderFactory) {
+		String pageParam = webRequest.getParameter("page");
+		String sizeParam = webRequest.getParameter("size");
 
-        int page = parseOrDefault(pageParam, 0);
-        int size = parseOrDefault(sizeParam, CommonPageRequest.DEFAULT_SIZE);
+		int page = parseOrDefault(pageParam, 0);
+		int size = parseOrDefault(sizeParam, CommonPageRequest.DEFAULT_SIZE);
 
-        return CommonPageRequest.of(page, size);
-    }
+		return CommonPageRequest.of(page, size);
+	}
 
-    private int parseOrDefault(String value, int defaultValue) {
-        if (value == null) return defaultValue;
-        try {
-            return Integer.parseInt(value);
-        } catch (NumberFormatException e) {
-            return defaultValue;
-        }
-    }
+	private int parseOrDefault(String value, int defaultValue) {
+		if (value == null) return defaultValue;
+		try {
+			return Integer.parseInt(value);
+		} catch (NumberFormatException e) {
+			return defaultValue;
+		}
+	}
 }

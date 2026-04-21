@@ -15,7 +15,7 @@ import java.util.UUID;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Access(AccessType.FIELD)
 @EntityListeners(AuditingEntityListener.class)
-public class Outbox  extends BaseTime {
+public class Outbox extends BaseTime {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.UUID)

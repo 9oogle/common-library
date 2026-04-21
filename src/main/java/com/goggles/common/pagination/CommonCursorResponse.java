@@ -20,39 +20,42 @@ import java.util.function.Function;
 @Getter
 public class CommonCursorResponse<T> {
 
-    private final List<T> content;
-    private final String nextCursor; // null이면 마지막 페이지
-    private final boolean hasNext;
+	private final List<T> content;
+	private final String nextCursor; // null이면 마지막 페이지
+	private final boolean hasNext;
 
-    private CommonCursorResponse(List<T> content, String nextCursor) {
-        this.content = content;
-        this.nextCursor = nextCursor;
-        this.hasNext = nextCursor != null;
-    }
+	private CommonCursorResponse(List<T> content, String nextCursor) {
+		this.content = content;
+		this.nextCursor = nextCursor;
+		this.hasNext = nextCursor != null;
+	}
 
-    // ── 팩토리 ────────────────────────────────────────────────────────────────
+	// ── 팩토리 ────────────────────────────────────────────────────────────────
 
-    /**
-     * 엔티티 리스트 → DTO 리스트로 변환하며 다음 커서를 추출.
-     *
-     * <p>조회 시 {@code size + 1}개를 가져와서 다음 페이지 존재 여부를 판단합니다.
-     *
-     * @param entities     조회된 엔티티 목록 (size + 1개 조회 권장)
-     * @param size         요청 사이즈
-     * @param mapper       엔티티 → DTO 변환 함수
-     * @param cursorExtractor 다음 커서 값 추출 함수 (마지막 엔티티 기준)
-     */
-    public static <E, T> CommonCursorResponse<T> of(List<E> entities, int size,
-                                               Function<E, T> mapper,
-                                               Function<E, String> cursorExtractor) {
-        boolean hasNext = entities.size() > size;
-        List<E> sliced = hasNext ? entities.subList(0, size) : entities;
-        String nextCursor = hasNext ? cursorExtractor.apply(sliced.get(sliced.size() - 1)) : null;
-        return new CommonCursorResponse<>(sliced.stream().map(mapper).toList(), nextCursor);
-    }
+	/**
+	 * 엔티티 리스트 → DTO 리스트로 변환하며 다음 커서를 추출.
+	 *
+	 * <p>조회 시 {@code size + 1}개를 가져와서 다음 페이지 존재 여부를 판단합니다.
+	 *
+	 * @param entities        조회된 엔티티 목록 (size + 1개 조회 권장)
+	 * @param size            요청 사이즈
+	 * @param mapper          엔티티 → DTO 변환 함수
+	 * @param cursorExtractor 다음 커서 값 추출 함수 (마지막 엔티티 기준)
+	 */
+	public static <E, T> CommonCursorResponse<T> of(List<E> entities, int size,
+			Function<E, T> mapper, Function<E, String> cursorExtractor) {
+		boolean hasNext = entities.size() > size;
+		List<E> sliced = hasNext ? entities.subList(0, size) : entities;
+		String nextCursor = hasNext ? cursorExtractor.apply(sliced.get(sliced.size() - 1)) : null;
+		return new CommonCursorResponse<>(sliced.stream()
+				.map(mapper)
+				.toList(), nextCursor);
+	}
 
-    /** 이미 변환된 DTO 리스트로 직접 생성. */
-    public static <T> CommonCursorResponse<T> of(List<T> content, String nextCursor) {
-        return new CommonCursorResponse<>(content, nextCursor);
-    }
+	/**
+	 * 이미 변환된 DTO 리스트로 직접 생성.
+	 */
+	public static <T> CommonCursorResponse<T> of(List<T> content, String nextCursor) {
+		return new CommonCursorResponse<>(content, nextCursor);
+	}
 }
