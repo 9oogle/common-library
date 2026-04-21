@@ -3,7 +3,7 @@ plugins {
     `maven-publish`
 }
 
-group = "com.nine-oogle"
+group = "com.goggles"
 version = "1.0.0"
 
 java {
