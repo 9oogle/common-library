@@ -42,11 +42,6 @@ public class CommonPageRequest {
         return new CommonPageRequest(page, size);
     }
 
-    /** Spring Data {@link Pageable} 로 변환 (정렬 없음). */
-    public Pageable toPageable() {
-        return CommonPageRequest.of(page, size).toPageable(Sort.unsorted());
-    }
-
     /** Spring Data {@link Pageable} 로 변환 (정렬 포함). */
     public Pageable toPageable(Sort sort) {
         return PageRequest.of(page, size, sort);

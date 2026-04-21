@@ -16,13 +16,13 @@ import java.util.UUID;
 /**
  * 생성/수정 시각 + 작성자 정보까지 관리하는 기반 엔티티.
  *
- * <p>소비자 서비스에서 {@code AuditorAware<String>} 빈을 등록해야 합니다.
+ * <p>소비자 서비스에서 {@code AuditorAware<UUID>} 빈을 등록해야 합니다.
  *
  * <pre>{@code
  * @Bean
- * public AuditorAware<String> auditorAware() {
+ * public AuditorAware<UUID> auditorAware() {
  *     return () -> Optional.ofNullable(SecurityContextHolder.getContext())
- *         .map(ctx -> ctx.getAuthentication().getName());
+ *         .map(ctx -> UUID.fromString(ctx.getAuthentication().getName()));
  * }
  * }</pre>
  */
