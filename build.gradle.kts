@@ -3,7 +3,7 @@ plugins {
     `maven-publish`
 }
 
-group = "com.nine-oogle"
+group = "com.goggles"
 version = "1.0.0"
 
 java {
@@ -18,7 +18,7 @@ repositories {
     mavenCentral()
 }
 
-val springBootVersion = "3.5.1"
+val springBootVersion = "3.5.13"
 val lombokVersion = "1.18.34"
 val querydslVersion = "5.1.0"
 
@@ -52,6 +52,12 @@ dependencies {
     compileOnly("jakarta.validation:jakarta.validation-api")
     compileOnly("jakarta.servlet:jakarta.servlet-api")
 
+    // ── Spring Security (선택적 — 소비자가 Security 없으면 관련 설정 비활성) ──
+    compileOnly("org.springframework.boot:spring-boot-starter-security")
+
+    // ── AOP / AspectJ (InboxAdvice @Aspect 용) ───────────────────────────────
+    compileOnly("org.springframework.boot:spring-boot-starter-aop")
+
     // ── Jackson (ApiResponse JSON 직렬화) ────────────────────────────────────
     // api → 소비자도 이 타입을 직접 쓰므로 transitive 허용
     api("com.fasterxml.jackson.core:jackson-databind:2.19.1")
@@ -67,6 +73,7 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-starter-web")
     testImplementation("org.springframework.boot:spring-boot-starter-data-jpa")
+    testImplementation("org.springframework.boot:spring-boot-starter-validation")
     testImplementation("org.springframework.kafka:spring-kafka")
     testRuntimeOnly("com.h2database:h2")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
