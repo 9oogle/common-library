@@ -14,15 +14,17 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.core.KafkaTemplate;
 
 @Configuration
-@ConditionalOnBean(type = "org.springframework.kafka.core.KafkaTemplate")
 public class OutboxConfig {
+
   @Bean
+  @ConditionalOnBean(type = "org.springframework.kafka.core.KafkaTemplate")
   public OutboxStatusUpdater outboxStatusUpdater(OutboxRepository outboxRepository,
       KafkaTemplate<String, Object> kafkaTemplate) {
     return new OutboxStatusUpdater(outboxRepository, kafkaTemplate);
   }
 
   @Bean
+  @ConditionalOnBean(type = "org.springframework.kafka.core.KafkaTemplate")
   public OutboxEventListener outboxEventListener(OutboxRepository outboxRepository,
       KafkaTemplate<String, Object> kafkaTemplate, ObjectMapper objectMapper,
       OutboxStatusUpdater outboxStatusUpdater) {
@@ -31,17 +33,20 @@ public class OutboxConfig {
   }
 
   @Bean
+  @ConditionalOnBean(type = "org.springframework.kafka.core.KafkaTemplate")
   public OutboxRelayScheduler outboxRelayScheduler(OutboxRepository outboxRepository,
       KafkaTemplate<String, Object> kafkaTemplate, OutboxStatusUpdater outboxStatusUpdater) {
     return new OutboxRelayScheduler(outboxRepository, kafkaTemplate, outboxStatusUpdater);
   }
 
   @Bean
+  @ConditionalOnBean(type = "org.springframework.kafka.core.KafkaTemplate")
   public InboxAdvice inboxAdvice(InboxRepository inboxRepository) {
     return new InboxAdvice(inboxRepository);
   }
 
   @Bean
+  @ConditionalOnBean(type = "org.springframework.kafka.core.KafkaTemplate")
   public InboxCleanupScheduler inboxCleanupScheduler(InboxRepository inboxRepository) {
     return new InboxCleanupScheduler(inboxRepository);
   }
