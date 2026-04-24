@@ -7,7 +7,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.AsyncConfigurer;
 
 @Configuration
-public class EventConfig implements AsyncConfigurer {
+public class EventConfig {
 
 	@Bean
 	public Events events(ApplicationEventPublisher eventPublisher) {
