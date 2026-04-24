@@ -1,4 +1,4 @@
-package com.goggles.config.web;
+package com.goggles.config.common;
 
 import com.goggles.common.filter.MdcLoggingFilter;
 import com.goggles.common.pagination.CommonCursorRequestArgumentResolver;
@@ -13,16 +13,21 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
 @ConditionalOnWebApplication(type = Type.SERVLET)
-public class WebSupportConfig implements WebMvcConfigurer {
+public class WebSupportConfig {
 
   @Bean
   public MdcLoggingFilter mdcLoggingFilter() {
     return new MdcLoggingFilter();
   }
 
-  @Override
-  public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
-    resolvers.add(new CommonPageRequestArgumentResolver());
-    resolvers.add(new CommonCursorRequestArgumentResolver());
+  @Bean
+  public WebMvcConfigurer commonArgumentResolverConfigurer() {
+    return new WebMvcConfigurer() {
+      @Override
+      public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
+        resolvers.add(new CommonPageRequestArgumentResolver());
+        resolvers.add(new CommonCursorRequestArgumentResolver());
+      }
+    };
   }
 }
