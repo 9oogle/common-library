@@ -1,0 +1,3 @@
+com.goggles.config.web.WebSupportConfig
+com.goggles.config.event.AsyncConfig
+com.goggles.config.event.EventConfig
