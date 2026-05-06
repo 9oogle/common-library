@@ -1,4 +1,5 @@
 com.goggles.config.common.WebSupportConfig
+com.goggles.config.common.WebResponseConfig
 com.goggles.config.common.QuerydslConfig
 com.goggles.config.event.AsyncConfig
 com.goggles.config.event.EventConfig
