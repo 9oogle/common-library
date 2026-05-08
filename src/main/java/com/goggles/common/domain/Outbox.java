@@ -50,6 +50,10 @@ public class Outbox {
 	@Column(updatable = false)
 	private Instant createdAt;
 
+	@LastModifiedDate
+	@Column
+	private Instant updatedAt;
+
 	private Instant processedAt;
 
 	public void processing() {

@@ -5,6 +5,7 @@ import com.goggles.common.domain.Outbox;
 import com.goggles.common.domain.OutboxRepository;
 import com.goggles.common.domain.OutboxStatus;
 import com.goggles.common.event.OutboxStatusUpdater;
+import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -37,8 +38,7 @@ public class OutboxRelayScheduler {
 		// 서버 재시작 등으로 PROCESSING 상태가 일정 시간 이상 유지된 row 복구
 		List<Outbox> stuckTargets =
 				outboxRepository.findByStatusAndUpdatedAtBefore(OutboxStatus.PROCESSING,
-						LocalDateTime.now()
-								.minusMinutes(PROCESSING_STUCK_MINUTES));
+						Instant.now().minusSeconds(PROCESSING_STUCK_MINUTES * 60));
 		if (!stuckTargets.isEmpty()) {
 			log.warn("[Outbox] PROCESSING stuck 감지 {}건 — 재처리합니다", stuckTargets.size());
 			targets.addAll(stuckTargets);
