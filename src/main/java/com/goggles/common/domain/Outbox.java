@@ -3,8 +3,12 @@ package com.goggles.common.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
@@ -15,7 +19,7 @@ import java.util.UUID;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Access(AccessType.FIELD)
 @EntityListeners(AuditingEntityListener.class)
-public class Outbox extends BaseTime {
+public class Outbox {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.UUID)
@@ -42,12 +46,19 @@ public class Outbox extends BaseTime {
 	@Builder.Default
 	private int retryCount = 0;
 
+	@CreatedDate
+	@Column(updatable = false)
+	private Instant createdAt;
+
+	private Instant processedAt;
+
 	public void processing() {
 		this.status = OutboxStatus.PROCESSING;
 	}
 
 	public void complete() {
 		this.status = OutboxStatus.PROCESSED;
+		this.processedAt = Instant.now();
 	}
 
 	public void fail() {

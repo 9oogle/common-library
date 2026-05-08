@@ -6,6 +6,7 @@ import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -35,5 +36,5 @@ public class Inbox extends BaseTime {
 
 	@CreatedDate
 	@Column(updatable = false)
-	private LocalDateTime processedAt;
+	private Instant processedAt;
 }
